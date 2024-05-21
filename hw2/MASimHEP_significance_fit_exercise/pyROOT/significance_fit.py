@@ -107,11 +107,14 @@ print('\n\n++ QUESTION 1')
 # 1) Make histograms of a few variables for the signal and background in the same plot (pTLL, dPhiLLmet, dPhi_LL,
 # MET, mT).
 
-nbins = 100
-variable_dict = {"ptLL": ["ptLL", nbins, 0., 300.], "dPhiLLmet": ["dPhiLLmet", nbins, 0., 3.5],
+nbins = 80
+variable_dict = {"ptLL": ["ptLL", nbins, 0., 250.], "dPhiLLmet": ["dPhiLLmet", nbins, 0., 3.5],
                  "dPhi_LL": ["dPhi_LL", nbins, 0., 3.2],
                  "MET": ["MET", nbins, 0., 200.], "mt": ["mt", nbins, 0., 300.], "goodjet_n": ["goodjet_n", 2, 0., 2.],
                  "goodbjet_n": ["goodbjet_n", 2, 0., 2.]}
+# Histogram dictionary
+# initialize a emptuy dictionary to append the entries in the loop
+histograms = {}
 
 for var in variable_dict:
     sighist = ROOT.TH1F(var + "sig", "", variable_dict[var][1], variable_dict[var][2], variable_dict[var][3])
@@ -127,14 +130,17 @@ for var in variable_dict:
     bkghist.GetXaxis().SetTitle(f"{var} [GeV]")
 
     legend = ROOT.TLegend()
+    ROOT.gStyle.SetOptStat(0)
     bkghist.Draw("hist")
     bkghist.SetMinimum(0)
     sighist.Draw("histsame")
     legend.AddEntry(sighist, "HWW signal")
     legend.AddEntry(bkghist, "background")
+    histograms[variable_dict[var][0]] = [sighist, bkghist]
     legend.Draw()
-    c.Print(f"../Exercise1/{var}.png")
 
+    c.Print(f"../Exercise1/{var}.png")
+c.Clear()
 ######################################## QUESTION 2 ########################################
 print('\n\n++ QUESTION 2')
 # 2) Choose two variables for the signal selection optimisation. Justify your choice.
@@ -150,9 +156,55 @@ print(
 ######################################## QUESTION 3 ########################################
 print('\n\n++ QUESTION 3')
 # 3) Optimize the signal selection criteria using these two variables.
+# Calculate the significance of the signal and background histograms
 
+def significance(S, B):
+    if B == 0:
+        return 0
+    else:
+        return math.sqrt(2*(S+B)*math.log(1+S/B) - 2*S)
 
-# Define the variables
+# Define the variables to be used for the optimisation
+best_variables = ["ptLL", "MET"]
+S_right, B_right = 0, 0
+S_left, B_left = 0, 0
+
+for var in best_variables:
+    histograms[var].append(histograms[var][0].Clone())  # significance histogram from left to right
+    histograms[var].append(histograms[var][0].Clone())  # significance histogram from right to left
+
+    for i in range(1, histograms[var][0].GetNbinsX()+1):
+        S_right = S_right + histograms[var][0].GetBinContent(i)
+        B_right = B_right + histograms[var][1].GetBinContent(i)
+        histograms[var][2].SetBinContent(i, significance(S_right, B_right))
+
+        S_left = S_left + histograms[var][0].GetBinContent(histograms[var][0].GetNbinsX() - i + 1)
+        B_left = B_left + histograms[var][1].GetBinContent(histograms[var][0].GetNbinsX() - i + 1)
+        histograms[var][3].SetBinContent(i, significance(S_left, B_left))
+
+    max_significance_right = histograms[var][2].GetMaximum()
+    max_significance_left = histograms[var][3].GetMaximum()
+    histograms[var].append(max_significance_right)
+    histograms[var].append(max_significance_left)
+    # Plot the significance histograms
+    c.Divide(2, 1)
+    c.cd(1)
+    histograms[var][2].SetStats(0)
+    histograms[var][2].GetXaxis().SetTitle(f"{var} Bin")
+    histograms[var][2].GetYaxis().SetTitle("Significance (from left to right)")
+    histograms[var][2].Draw("hist")
+
+    c.cd(2)
+    histograms[var][3].SetStats(0)
+    histograms[var][3].GetXaxis().SetTitle(f"{var} Bin")
+    histograms[var][3].GetYaxis().SetTitle("Significance (right to left)")
+    histograms[var][3].Draw("hist")
+
+    c.Print(f"../Exercise1/significance_{var}.png")
+    c.Clear()
+
+# Make a cut on the histograms
+cut_values = {}
 
 
 # Close files in the end
