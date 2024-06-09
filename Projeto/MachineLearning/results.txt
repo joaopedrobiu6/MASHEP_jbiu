@@ -1,0 +1,2 @@
+Observed μ upper limit (obs): 0.076
+Expected μ upper limit (exp): 0.378
