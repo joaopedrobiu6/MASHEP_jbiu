@@ -1,0 +1,7 @@
+Value for epsilon (background normalization factor): 0.9117607979304521
+Observed μ upper limit (obs) with epsilon: 0.394574660940516
+Expected μ upper limit (exp) with epsilon: 0.3720892853446577
+
+
+Observed μ upper limit (obs): 0.07905999129291112
+Expected μ upper limit (exp): 0.3893917450907491
